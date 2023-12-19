@@ -2,6 +2,7 @@ import { Link, useLoaderData } from '@remix-run/react';
 import { load as cheerioLoad } from 'cheerio';
 import { json } from '@remix-run/node';
 import axios from 'axios';
+import BaseAnimeScraper from 'utils/BaseAnimeScraper';
 
 export async function loader() {
   try {
@@ -22,7 +23,35 @@ export async function loader() {
         link: $(anime).find('.film-poster-ahref').attr('href'),
       }));
 
-    return json({ title, animes });
+    const nineAnime = new BaseAnimeScraper({
+      baseUrl: 'https://9animetv.to',
+      endpoints: {
+        home: '/home',
+      },
+      selectors: {
+        home: {
+          featured: {
+            card: '.film_list-wrap .flw-item',
+            title: '.film-detail > .film-name > a',
+            quality: '.tick-quality',
+            sub: '.tick-item.tick-sub',
+            dub: '.tick-item.tick-dub',
+            image: '.film-poster-img',
+            slug: 'a.film-poster-ahref',
+            ep: {
+              name: '.tick-item.tick-eps',
+              slug: '',
+            },
+          },
+        },
+      },
+    });
+
+    return json({
+      title,
+      animes,
+      data: { HomePageData: await nineAnime.scrapeHomePage() },
+    });
   } catch (error) {
     console.log(error);
   }
@@ -30,7 +59,7 @@ export async function loader() {
 
 export default function Index() {
   const data = useLoaderData<typeof loader>();
-  console.log(data.animes);
+  console.log(data.data);
 
   return (
     <main className='p-6 md:p-12'>
